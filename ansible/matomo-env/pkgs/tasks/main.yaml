@@ -1,0 +1,76 @@
+- name: Update all packages to the latest version
+  apt:
+    name: "*"
+    state: latest
+    update_cache: yes
+    # update_only: yes
+    # security: no
+  tags:
+    - pkgs
+
+- name: Install required packages
+  apt:
+    name:
+      - nginx
+      - mariadb-server
+      - php-fpm
+      - php-mysqlnd
+      - php-xml
+      - php-json
+      - php-mbstring
+      - php-cli
+      - php-gd
+      - php-curl
+      - unzip
+      - certbot
+      - snapd
+    state: present
+    update_cache: yes
+  tags:
+    - pkgs
+
+- name: Ensure Certbot is installed
+  package:
+    name: certbot
+    state: present
+  become: true
+  tags:
+    - pkgs
+
+- name: Install and configure Certbot via Snap
+  block:
+    - name: Ensure core snap is up-to-date
+      snap:
+        name: core
+        state: present
+    - name: Install Certbot via snap
+      snap:
+        name: certbot
+        classic: yes
+        state: present
+    - name: Create symlink for certbot
+      file:
+        src: /snap/bin/certbot
+        dest: /usr/bin/certbot
+        state: link
+        force: yes
+    - name: Verify Certbot installation
+      command: certbot --version
+      register: certbot_version
+      changed_when: false
+  become: true
+  tags:
+    - certbot
+    - pkgs
+
+- name: Enable and start services
+  systemd:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  with_items:
+    - nginx
+    - mariadb
+    - php-fpm
+  tags:
+    - pkgs

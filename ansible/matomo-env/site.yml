@@ -1,0 +1,37 @@
+
+- name: Load secret variables
+  hosts: matomo_server
+  tasks:
+    - name: Load secret variables
+      include_vars:
+        file: vars/secrets.yml
+  tags:
+    - always
+
+- hosts: matomo_server
+  become: true
+  roles:
+    - sysconfig
+
+- hosts: matomo_server
+  become: true
+  tasks:
+    - name: Reboot the machine
+      reboot:
+        msg: "Rebooting after mounting /var/lib/mysql and /var/www"
+        connect_timeout: 30
+        reboot_timeout: 300
+        pre_reboot_delay: 10
+        post_reboot_delay: 40
+      tags:
+      - sysconfig
+
+- hosts: matomo_server
+  become: true
+  roles:
+    - pkgs
+    - matomoprovisioning
+  handlers:
+    - import_tasks: handlers/main.yml
+
+
